@@ -57,7 +57,7 @@ export default function Page() {
         </nav>
         <div className="flex items-center gap-4 text-white/70">
           <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Search"><Search className="size-4" /></button>
-          <button onClick={() => setAdminOpen(true)} className="hidden text-[10px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white sm:inline">Admin login</button>
+          <a href="/admin" className="hidden text-[10px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white sm:inline">Admin login</a>
           <button onClick={() => setCartOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]" aria-label="Open shopping bag"><ShoppingBag className="size-4" /><span className="hidden sm:inline">{cartLabel}</span></button>
         </div>
       </header>
