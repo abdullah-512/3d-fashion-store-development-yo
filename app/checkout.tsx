@@ -1,35 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js"
-import { loadStripe } from "@stripe/stripe-js"
+import { FormEvent, useState } from "react"
 import { X } from "lucide-react"
-import { startCheckoutSession } from "@/app/actions/stripe"
+import { placeCodOrder } from "@/app/actions/orders"
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-
-export function Checkout({ quantity, onClose }: { quantity: number; onClose: () => void }) {
-  const [clientSecret, setClientSecret] = useState<string>()
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    startCheckoutSession("form-01-bomber", quantity).then(setClientSecret).catch(() => setError(true))
-  }, [quantity])
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <button className="absolute inset-0 bg-black/80" onClick={onClose} aria-label="Close checkout" />
-      <section className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden bg-[#f2f0eb] text-[#111] shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
-        <div className="flex items-center justify-between border-b border-black/10 px-6 py-5">
-          <h2 id="checkout-title" className="font-serif text-3xl tracking-[-0.05em]">Secure checkout</h2>
-          <button onClick={onClose} aria-label="Close checkout"><X className="size-5" /></button>
-        </div>
-        <div className="min-h-[420px] overflow-auto p-4 sm:p-6">
-          {error && <p className="py-12 text-center text-sm text-black/60">Checkout could not be started. Please try again.</p>}
-          {clientSecret && <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}><EmbeddedCheckout /></EmbeddedCheckoutProvider>}
-          {!clientSecret && !error && <p className="py-12 text-center text-sm text-black/50">Preparing secure checkout…</p>}
-        </div>
-      </section>
-    </div>
-  )
+export function Checkout({ quantity, onClose, onNeedLogin }: { quantity: number; onClose: () => void; onNeedLogin: () => void }) {
+  const [submitted, setSubmitted] = useState(false)
+  const [orderId, setOrderId] = useState("")
+  const [error, setError] = useState("")
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError("")
+    const data = new FormData(event.currentTarget)
+    try {
+      const result = await placeCodOrder({ productId: "form-01-bomber", productName: "Form 01 / Bomber", quantity, priceInCents: 29000, fullName: String(data.get("fullName")), phone: String(data.get("phone")), email: String(data.get("email") || ""), city: String(data.get("city")), province: String(data.get("province")), address: String(data.get("address")), notes: String(data.get("notes") || "") })
+      setOrderId(result.orderId); setSubmitted(true)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Order could not be saved.") }
+  }
+  return <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"><button className="absolute inset-0 bg-black/80" onClick={onClose} aria-label="Close checkout" /><section className="relative max-h-[94vh] w-full max-w-2xl overflow-auto bg-[#f2f0eb] p-6 text-[#111] shadow-2xl sm:p-9" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><div className="flex items-center justify-between border-b border-black/10 pb-5"><h2 id="checkout-title" className="font-serif text-3xl">{submitted ? "Order confirmed" : "Cash on delivery"}</h2><button onClick={onClose} aria-label="Close checkout"><X className="size-5" /></button></div>{submitted ? <div className="py-12"><p className="text-sm text-black/60">Thank you. We will collect payment when your parcel is delivered.</p><p className="mt-4 font-mono text-sm">Order #{orderId.slice(0, 8).toUpperCase()}</p><button onClick={onClose} className="mt-8 bg-[#111] px-6 py-4 text-[10px] uppercase tracking-[0.18em] text-white">Return to store</button></div> : <form onSubmit={submit} className="flex flex-col gap-5 pt-7"><p className="border border-black/10 bg-white/50 p-4 text-xs text-black/60">Sign in is required before checkout so your orders and addresses stay saved.</p><button type="button" onClick={onNeedLogin} className="self-start border-b border-black/40 pb-1 text-[10px] uppercase tracking-[0.16em]">Sign in or create account</button><div className="grid gap-5 sm:grid-cols-2"><label className="text-[10px] uppercase tracking-[0.14em]">Full name<input name="fullName" required className="mt-2 w-full border-b border-black/20 bg-transparent py-3 text-sm normal-case tracking-normal outline-none" /></label><label className="text-[10px] uppercase tracking-[0.14em]">Mobile (+92)<input name="phone" required placeholder="+923001234567" className="mt-2 w-full border-b border-black/20 bg-transparent py-3 text-sm normal-case tracking-normal outline-none" /></label><label className="text-[10px] uppercase tracking-[0.14em]">Email (optional)<input name="email" type="email" className="mt-2 w-full border-b border-black/20 bg-transparent py-3 text-sm normal-case tracking-normal outline-none" /></label><label className="text-[10px] uppercase tracking-[0.14em]">Province<input name="province" required className="mt-2 w-full border-b border-black/20 bg-transparent py-3 text-sm normal-case tracking-normal outline-none" /></label><label className="text-[10px] uppercase tracking-[0.14em]">City<input name="city" required className="mt-2 w-full border-b border-black/20 bg-transparent py-3 text-sm normal-case tracking-normal outline-none" /></label></div><label className="text-[10px] uppercase tracking-[0.14em]">Complete address<textarea name="address" required rows={3} className="mt-2 w-full resize-none border border-black/15 bg-transparent p-3 text-sm normal-case tracking-normal outline-none" /></label><label className="text-[10px] uppercase tracking-[0.14em]">Notes (optional)<textarea name="notes" rows={2} className="mt-2 w-full resize-none border border-black/15 bg-transparent p-3 text-sm normal-case tracking-normal outline-none" /></label><div className="flex items-center justify-between border-t border-black/10 pt-5 text-sm"><span>Total · PKR {(29000 * quantity).toLocaleString()}</span><span className="text-black/55">COD only</span></div>{error && <p className="text-sm text-red-700">{error}</p>}<button type="submit" className="bg-[#111] py-4 text-[10px] uppercase tracking-[0.2em] text-white">Place COD order</button></form>}</section></div>
 }

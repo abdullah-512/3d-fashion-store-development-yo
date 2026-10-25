@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Checkout } from "./checkout"
+import { authClient } from "@/lib/auth-client"
 import {
   ArrowDownRight,
   ArrowRight,
@@ -35,12 +36,27 @@ export default function Page() {
   const [adminPassword, setAdminPassword] = useState("")
   const [adminSubmitted, setAdminSubmitted] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [accountMode, setAccountMode] = useState<"sign-in" | "sign-up">("sign-in")
+  const [accountName, setAccountName] = useState("")
+  const [accountEmail, setAccountEmail] = useState("")
+  const [accountPassword, setAccountPassword] = useState("")
+  const [accountError, setAccountError] = useState("")
 
   const cartLabel = useMemo(() => `Bag (${cartCount})`, [cartCount])
 
   function addToCart() {
     setCartCount((count) => count + 1)
     setCartOpen(true)
+  }
+
+  async function submitAccount(event: React.FormEvent) {
+    event.preventDefault(); setAccountError("")
+    const result = accountMode === "sign-in"
+      ? await authClient.signIn.email({ email: accountEmail, password: accountPassword })
+      : await authClient.signUp.email({ email: accountEmail, password: accountPassword, name: accountName })
+    if (result.error) { setAccountError("Unable to authenticate. Check your details and try again."); return }
+    setAccountOpen(false); setAccountPassword("")
   }
 
   return (
@@ -57,7 +73,7 @@ export default function Page() {
         </nav>
         <div className="flex items-center gap-4 text-white/70">
           <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Search"><Search className="size-4" /></button>
-          <a href="/admin" className="hidden text-[10px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white sm:inline">Admin login</a>
+          <button onClick={() => { setAccountMode("sign-in"); setAccountOpen(true) }} className="hidden text-[10px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white sm:inline">Account</button><a href="/admin" className="hidden text-[10px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white sm:inline">Admin login</a>
           <button onClick={() => setCartOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]" aria-label="Open shopping bag"><ShoppingBag className="size-4" /><span className="hidden sm:inline">{cartLabel}</span></button>
         </div>
       </header>
@@ -104,8 +120,10 @@ export default function Page() {
 
       {adminOpen && <div className="fixed inset-0 z-40 flex items-center justify-center p-5"><button className="absolute inset-0 bg-black/80" onClick={() => setAdminOpen(false)} aria-label="Close admin login" /><section role="dialog" aria-modal="true" aria-labelledby="admin-login-title" className="relative w-full max-w-md border border-white/15 bg-[#f2f0eb] p-7 text-[#111] shadow-2xl md:p-10"><div className="mb-10 flex items-start justify-between"><div><p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Atelier / 09</p><h2 id="admin-login-title" className="font-serif text-4xl tracking-[-0.06em]">Admin access</h2></div><button onClick={() => setAdminOpen(false)} aria-label="Close admin login"><X className="size-5" /></button></div>{adminSubmitted ? <div className="border-t border-black/15 pt-6"><p className="text-sm leading-6 text-black/60">Admin authentication is ready to connect when a secure auth provider is added.</p><button onClick={() => setAdminOpen(false)} className="mt-7 border-b border-black/40 pb-2 text-[10px] uppercase tracking-[0.18em]">Return to store</button></div> : <form onSubmit={(event) => { event.preventDefault(); setAdminSubmitted(true) }} className="flex flex-col gap-5"><label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.16em]">Email<input value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} type="email" required className="border-b border-black/25 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-black" placeholder="admin@atelier09.com" /></label><label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.16em]">Password<input value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} type="password" required className="border-b border-black/25 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-black" placeholder="••••••••" /></label><button type="submit" className="mt-4 bg-[#111] py-4 text-[10px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/80">Continue</button></form>}</section></div>}
 
+      {accountOpen && <div className="fixed inset-0 z-[70] flex items-center justify-center p-5"><button className="absolute inset-0 bg-black/80" onClick={() => setAccountOpen(false)} aria-label="Close account dialog" /><section className="relative w-full max-w-md bg-[#f2f0eb] p-8 text-[#111]" role="dialog" aria-modal="true" aria-labelledby="account-title"><button onClick={() => setAccountOpen(false)} className="absolute right-6 top-6" aria-label="Close account dialog"><X className="size-5" /></button><p className="text-[10px] uppercase tracking-[0.2em] text-black/45">Atelier / 09</p><h2 id="account-title" className="mt-3 font-serif text-4xl">{accountMode === "sign-in" ? "Welcome back" : "Create account"}</h2><form onSubmit={submitAccount} className="mt-8 flex flex-col gap-5">{accountMode === "sign-up" && <input value={accountName} onChange={(event) => setAccountName(event.target.value)} required placeholder="Full name" className="border-b border-black/20 bg-transparent py-3 text-sm outline-none" /> }<input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} required type="email" placeholder="Email address" className="border-b border-black/20 bg-transparent py-3 text-sm outline-none" /><input value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} required minLength={8} type="password" placeholder="Password" className="border-b border-black/20 bg-transparent py-3 text-sm outline-none" />{accountError && <p className="text-sm text-red-700">{accountError}</p>}<button className="bg-[#111] py-4 text-[10px] uppercase tracking-[0.2em] text-white">{accountMode === "sign-in" ? "Sign in" : "Create account"}</button></form><button onClick={() => setAccountMode(accountMode === "sign-in" ? "sign-up" : "sign-in")} className="mt-6 text-[10px] uppercase tracking-[0.16em] underline">{accountMode === "sign-in" ? "New here? Create an account" : "Already have an account? Sign in"}</button></section></div>}
+
       {cartOpen && <div className="fixed inset-0 z-50"><button className="absolute inset-0 bg-black/70" onClick={() => setCartOpen(false)} aria-label="Close cart overlay" /><aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[#f2f0eb] p-6 text-[#111] shadow-2xl"><div className="flex items-center justify-between border-b border-black/15 pb-5"><h2 className="font-serif text-3xl tracking-[-0.05em]">Your bag</h2><button onClick={() => setCartOpen(false)} aria-label="Close bag"><X className="size-5" /></button></div>{cartCount === 0 ? <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center"><ShoppingBag className="size-8 stroke-1" /><p className="text-sm text-black/55">Your bag is currently empty.</p><button onClick={() => setCartOpen(false)} className="border-b border-black/40 pb-1 text-[10px] uppercase tracking-[0.18em]">Continue shopping</button></div> : <div className="flex flex-1 flex-col justify-between pt-6"><div className="flex items-center justify-between border-b border-black/10 pb-5"><div><p className="text-sm">Form 01 / Bomber</p><p className="mt-1 text-xs text-black/45">Charcoal / M</p></div><div className="flex items-center gap-3"><button onClick={() => setCartCount(Math.max(0, cartCount - 1))} aria-label="Decrease quantity"><Minus className="size-3" /></button><span className="text-sm">{cartCount}</span><button onClick={() => setCartCount(cartCount + 1)} aria-label="Increase quantity"><Plus className="size-3" /></button></div><p className="text-sm">${290 * cartCount}</p></div><div><div className="mb-5 flex justify-between text-sm"><span>Subtotal</span><span>${290 * cartCount}</span></div><button onClick={() => setCheckoutOpen(true)} className="w-full bg-[#111] py-4 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-black/80">Proceed to checkout</button><p className="mt-4 text-center text-[10px] text-black/40">Checkout is securely encrypted.</p></div></div>}</aside></div>}
-      {checkoutOpen && <Checkout quantity={cartCount} onClose={() => setCheckoutOpen(false)} />}
+      {checkoutOpen && <Checkout quantity={cartCount} onClose={() => setCheckoutOpen(false)} onNeedLogin={() => { setCheckoutOpen(false); setAccountMode("sign-in"); setAccountOpen(true) }} />}
     </main>
   )
 }
