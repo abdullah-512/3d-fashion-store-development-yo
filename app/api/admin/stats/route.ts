@@ -10,12 +10,13 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const current = await db.select({ role: user.role }).from(user).where(eq(user.id, session.user.id)).limit(1)
   if (current[0]?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  const [users, orderCount, productCount, activeLogins, recentOrders] = await Promise.all([
+  const [users, orderCount, productCount, activeLogins, recentOrders, customers] = await Promise.all([
     db.select({ value: count() }).from(user),
     db.select({ value: count() }).from(orders),
     db.select({ value: count() }).from(products).where(eq(products.active, true)),
     db.select({ value: count() }).from(loginEvents).where(gt(loginEvents.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))),
-    db.select().from(orders).orderBy(desc(orders.createdAt)).limit(8),
+    db.select({ id: orders.id, userId: orders.userId, status: orders.status, totalInCents: orders.totalInCents, addressSnapshot: orders.addressSnapshot, createdAt: orders.createdAt }).from(orders).orderBy(desc(orders.createdAt)).limit(20),
+    db.select({ id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt }).from(user).orderBy(desc(user.createdAt)).limit(100),
   ])
-  return NextResponse.json({ users: users[0]?.value ?? 0, orders: orderCount[0]?.value ?? 0, products: productCount[0]?.value ?? 0, activeLogins: activeLogins[0]?.value ?? 0, recentOrders })
+  return NextResponse.json({ users: users[0]?.value ?? 0, orders: orderCount[0]?.value ?? 0, products: productCount[0]?.value ?? 0, activeLogins: activeLogins[0]?.value ?? 0, recentOrders, customers })
 }
