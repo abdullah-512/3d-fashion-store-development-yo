@@ -28,6 +28,7 @@ export default function Page() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [liked, setLiked] = useState<number[]>([])
   const [subscribed, setSubscribed] = useState(false)
   const [email, setEmail] = useState("")
@@ -66,7 +67,7 @@ export default function Page() {
       </div>
 
       <header className="relative z-20 flex items-center justify-between border-b border-white/10 px-5 py-5 md:px-10">
-        <button className="md:hidden" aria-label="Open menu"><Menu /></button>
+        <button onClick={() => setMobileMenuOpen(true)} className="md:hidden" aria-label="Open menu" aria-expanded={mobileMenuOpen}><Menu className="size-5" /></button>
         <a href="#top" className="font-serif text-2xl tracking-[-0.06em]">ATELIER / 09</a>
         <nav className="hidden items-center gap-7 text-[10px] uppercase tracking-[0.2em] text-white/60 md:flex">
           {[["Shop", "#shop"], ["Collections", "#collections"], ["Manifesto", "#manifesto"]].map(([label, href]) => <a key={label} href={href} className="transition-colors hover:text-white">{label}</a>)}
@@ -77,6 +78,8 @@ export default function Page() {
           <button onClick={() => setCartOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]" aria-label="Open shopping bag"><ShoppingBag className="size-4" /><span className="hidden sm:inline">{cartLabel}</span></button>
         </div>
       </header>
+
+      {mobileMenuOpen && <div className="fixed inset-0 z-[60] md:hidden"><button className="absolute inset-0 bg-black/75" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" /><aside className="absolute left-0 top-0 flex h-full w-[min(88vw,22rem)] flex-col bg-[#f2f0eb] p-6 text-[#111] shadow-2xl"><div className="flex items-center justify-between border-b border-black/15 pb-5"><span className="font-serif text-2xl">ATELIER / 09</span><button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu"><X className="size-5" /></button></div><nav className="flex flex-col gap-6 py-8 text-sm uppercase tracking-[0.16em]"><a href="#shop" onClick={() => setMobileMenuOpen(false)}>Shop</a><a href="#collections" onClick={() => setMobileMenuOpen(false)}>Collections</a><a href="#manifesto" onClick={() => setMobileMenuOpen(false)}>Manifesto</a><button className="text-left" onClick={() => { setMobileMenuOpen(false); setAccountMode("sign-in"); setAccountOpen(true) }}>Account</button><a href="/admin" onClick={() => setMobileMenuOpen(false)}>Admin login</a></nav></aside></div>}
 
       {searchOpen && <div className="border-b border-white/10 bg-[#151515] px-5 py-4 md:px-10"><input autoFocus placeholder="Search the collection" className="w-full bg-transparent text-sm outline-none placeholder:text-white/30" aria-label="Search collection" /></div>}
 
@@ -116,7 +119,7 @@ export default function Page() {
 
       <section id="manifesto" className="px-5 py-20 md:px-10 md:py-24"><div className="grid gap-10 border-b border-white/10 pb-20 md:grid-cols-[0.75fr_1.25fr]"><p className="text-[10px] uppercase tracking-[0.22em] text-white/45">04 / Stay close</p><div><h2 className="max-w-xl font-serif text-4xl tracking-[-0.05em] md:text-6xl">Notes from the studio, delivered sparingly.</h2><form onSubmit={(event) => { event.preventDefault(); if (email) setSubscribed(true) }} className="mt-8 flex max-w-md border-b border-white/30 pb-3">{subscribed ? <p className="text-sm text-white/60">You&apos;re on the list. Thank you.</p> : <><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required placeholder="Your email address" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-white/35" aria-label="Email address" /><button aria-label="Subscribe"><ArrowRight className="size-4" /></button></>}</form></div></div></section>
 
-      <footer className="flex flex-col gap-8 px-5 pb-10 text-[10px] uppercase tracking-[0.18em] text-white/40 md:flex-row md:items-end md:justify-between md:px-10"><p>© 2026 Atelier / 09</p><div className="flex gap-6"><a href="#top" className="hover:text-white">Instagram</a><a href="#top" className="hover:text-white">Shipping</a><a href="#top" className="hover:text-white">Contact</a></div></footer>
+      <footer className="flex flex-col gap-8 px-5 pb-10 text-[10px] uppercase tracking-[0.18em] text-white/40 sm:flex-row sm:items-end sm:justify-between md:px-10"><p>© 2026 Atelier / 09</p><div className="flex gap-6"><a href="#top" className="hover:text-white">Instagram</a><a href="#top" className="hover:text-white">Shipping</a><a href="#top" className="hover:text-white">Contact</a></div></footer>
 
       {adminOpen && <div className="fixed inset-0 z-40 flex items-center justify-center p-5"><button className="absolute inset-0 bg-black/80" onClick={() => setAdminOpen(false)} aria-label="Close admin login" /><section role="dialog" aria-modal="true" aria-labelledby="admin-login-title" className="relative w-full max-w-md border border-white/15 bg-[#f2f0eb] p-7 text-[#111] shadow-2xl md:p-10"><div className="mb-10 flex items-start justify-between"><div><p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Atelier / 09</p><h2 id="admin-login-title" className="font-serif text-4xl tracking-[-0.06em]">Admin access</h2></div><button onClick={() => setAdminOpen(false)} aria-label="Close admin login"><X className="size-5" /></button></div>{adminSubmitted ? <div className="border-t border-black/15 pt-6"><p className="text-sm leading-6 text-black/60">Admin authentication is ready to connect when a secure auth provider is added.</p><button onClick={() => setAdminOpen(false)} className="mt-7 border-b border-black/40 pb-2 text-[10px] uppercase tracking-[0.18em]">Return to store</button></div> : <form onSubmit={(event) => { event.preventDefault(); setAdminSubmitted(true) }} className="flex flex-col gap-5"><label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.16em]">Email<input value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} type="email" required className="border-b border-black/25 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-black" placeholder="admin@atelier09.com" /></label><label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.16em]">Password<input value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} type="password" required className="border-b border-black/25 bg-transparent py-3 text-sm normal-case tracking-normal outline-none focus:border-black" placeholder="••••••••" /></label><button type="submit" className="mt-4 bg-[#111] py-4 text-[10px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/80">Continue</button></form>}</section></div>}
 
